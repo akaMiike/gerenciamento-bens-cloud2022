@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class GerenciamentoDeBensApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(GerenciamnetoDeBensApplication.class, args);
+		SpringApplication.run(GerenciamentoDeBensApplication.class, args);
 	}
 
 }
