@@ -15,7 +15,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @EnableWebSecurity
 @Configuration
-public class SecurityConfig {
+public class WebSecurityConfig {
 
     private UserDetailsServiceImpl userDetailsService;
 
@@ -33,6 +33,7 @@ public class SecurityConfig {
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .antMatchers("/user/register").permitAll()
+                .antMatchers("/user/**").hasAnyRole("USER")
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
