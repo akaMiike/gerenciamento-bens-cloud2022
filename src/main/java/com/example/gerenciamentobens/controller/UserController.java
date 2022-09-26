@@ -1,8 +1,8 @@
 package com.example.gerenciamentobens.controller;
 
-import com.example.gerenciamentobens.entity.User;
-import com.example.gerenciamentobens.entity.UserRepository;
-import com.example.gerenciamentobens.entity.UserDTO;
+import com.example.gerenciamentobens.entity.user.User;
+import com.example.gerenciamentobens.entity.user.UserRepository;
+import com.example.gerenciamentobens.entity.user.UserDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,19 +43,19 @@ public class UserController {
         return ResponseEntity.ok(new UserDTO(newUser));
     }
 
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<UserDTO> getUser(@AuthenticationPrincipal UserDetails userDetails){
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
         return ResponseEntity.ok(new UserDTO(user));
     }
 
-    @DeleteMapping("/")
+    @DeleteMapping("")
     public void deleteUser(@AuthenticationPrincipal UserDetails userDetails){
         User userData = userRepository.findByUsername(userDetails.getUsername()).get();
         userRepository.deleteById(userData.getId());
     }
 
-    @PutMapping("/")
+    @PutMapping("")
     public ResponseEntity<UserDTO> updateUser(@AuthenticationPrincipal UserDetails userDetails,
                                               @RequestBody UserDTO userDataUpdated){
 

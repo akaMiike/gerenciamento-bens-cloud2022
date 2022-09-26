@@ -1,7 +1,7 @@
 package com.example.gerenciamentobens.config;
 
-import com.example.gerenciamentobens.entity.User;
-import com.example.gerenciamentobens.entity.UserRepository;
+import com.example.gerenciamentobens.entity.user.User;
+import com.example.gerenciamentobens.entity.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

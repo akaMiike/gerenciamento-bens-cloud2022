@@ -1,4 +1,4 @@
-package com.example.gerenciamentobens.entity;
+package com.example.gerenciamentobens.entity.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

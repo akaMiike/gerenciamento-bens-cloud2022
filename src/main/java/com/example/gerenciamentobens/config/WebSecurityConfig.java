@@ -34,6 +34,8 @@ public class WebSecurityConfig {
         http.authorizeRequests()
                 .antMatchers("/user/register").permitAll()
                 .antMatchers("/user/**").hasAnyRole("USER")
+                .antMatchers("/assets/user").hasAnyRole("USER")
+                .antMatchers("/assets/**").permitAll()
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
