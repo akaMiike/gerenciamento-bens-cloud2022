@@ -1,4 +1,4 @@
-package com.example.gerenciamentobens.entity;
+package com.example.gerenciamentobens.entity.user;
 
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
