@@ -25,6 +25,12 @@ public class UserDTO {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
+    public UserDTO(User user){
+        this.fullName = user.getFullName();
+        this.username = user.getUsername();
+        this.email = user.getEmail();
+    }
+
     public UserDTO(String fullName, String username, String email) {
         this.fullName = fullName;
         this.username = username;
