@@ -33,9 +33,8 @@ public class WebSecurityConfig {
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .antMatchers("/user/register").permitAll()
+                .antMatchers("/users/assets").hasAnyRole("USER")
                 .antMatchers("/user/**").hasAnyRole("USER")
-                .antMatchers("/assets/user").hasAnyRole("USER")
-                .antMatchers("/assets/**").permitAll()
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

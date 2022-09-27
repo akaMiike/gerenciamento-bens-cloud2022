@@ -1,6 +1,7 @@
 package com.example.gerenciamentobens.entity.user;
 
-import com.example.gerenciamentobens.entity.assets.Assets;
+import com.example.gerenciamentobens.entity.assets.Asset;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,10 +33,12 @@ public class User {
     @Column(name = "email")
     private String email;
 
-    @OneToMany(mappedBy = "user")
-    private List<Assets> assets = new ArrayList<>();
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Asset> assets = new ArrayList<>();
 
     @Column(name = "password")
+    @JsonIgnore
     private String password;
 
     public User(String fullName, String username, String email, String password){

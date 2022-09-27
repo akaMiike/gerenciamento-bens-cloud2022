@@ -14,15 +14,17 @@ import javax.persistence.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "assets")
-public class Assets {
+public class Asset {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "filename")
-    private String fileName;
+    private String fileReference;
+    private String name;
+    private String assetNumber;
+    private String location;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_user")
