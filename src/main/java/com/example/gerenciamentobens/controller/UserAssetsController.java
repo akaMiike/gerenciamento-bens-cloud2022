@@ -38,6 +38,7 @@ public class UserAssetsController {
     @PostMapping("")
     public ResponseEntity<Asset> insertNewAsset(@AuthenticationPrincipal UserDetails userDetails,
                                                 @ModelAttribute AssetDTO assetDTO) {
+        assetDTO.validateFileFormat();
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
         var asset = assetDTO.toModel(user, "dummy");
         var createdAsset = assetsRepository.save(asset);
@@ -48,6 +49,7 @@ public class UserAssetsController {
     public ResponseEntity<Asset> updateAsset(@AuthenticationPrincipal UserDetails userDetails,
                                              @ModelAttribute AssetDTO assetDTO,
                                              @PathVariable Long id) {
+        assetDTO.validateFileFormat();
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
 
         var asset = assetDTO.toModel(user, "dummy", id);
