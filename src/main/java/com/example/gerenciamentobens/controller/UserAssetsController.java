@@ -6,13 +6,15 @@ import com.example.gerenciamentobens.entity.assets.AssetsRepository;
 import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 
 @RestController
 @RequestMapping("/users/assets")
@@ -23,16 +25,17 @@ public class UserAssetsController {
     @Autowired
     private UserRepository userRepository;
 
-//    @GetMapping("")
-//    public ResponseEntity<List<Assets>> getAllAssets(){
-//        List<Assets> allAssets = StreamSupport.stream(assetsRepository.findAll().spliterator(), false).toList();
-//        return ResponseEntity.ok(allAssets);
-//    }
-
     @GetMapping("")
-    public ResponseEntity<List<Asset>> getAllAssetsFromUser(@AuthenticationPrincipal UserDetails userDetails){
-        User user = userRepository.findByUsername(userDetails.getUsername()).get();
-        return ResponseEntity.ok(user.getAssets());
+    public ResponseEntity<Iterable<Asset>> getAssets(@AuthenticationPrincipal UserDetails userDetails,
+                                                     @RequestParam(required = false) String name,
+                                                     @RequestParam(required = false) String location) {
+        ExampleMatcher matcher = ExampleMatcher
+                .matchingAll()
+                .withMatcher("name", contains().ignoreCase())
+                .withMatcher("location", contains().ignoreCase());
+        Asset example = new Asset(null, null, name, null, location, null);
+
+        return ResponseEntity.ok(assetsRepository.findAll(Example.of(example, matcher)));
     }
 
     @PostMapping("")
