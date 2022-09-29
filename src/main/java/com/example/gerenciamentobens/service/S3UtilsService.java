@@ -3,7 +3,6 @@ package com.example.gerenciamentobens.service;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,11 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URL;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 @Service
 public class S3UtilsService {
@@ -45,17 +41,26 @@ public class S3UtilsService {
         expTimeMillis += 1000 * 60 * 60;
         expiration.setTime(expTimeMillis);
 
-        GeneratePresignedUrlRequest presignedUrlRequest =  new GeneratePresignedUrlRequest(bucketName,filePath)
-                .withMethod(HttpMethod.GET)
-                .withExpiration(expiration);
+        if(s3.doesObjectExist(bucketName, filePath)){
+            GeneratePresignedUrlRequest presignedUrlRequest =  new GeneratePresignedUrlRequest(bucketName,filePath)
+                    .withMethod(HttpMethod.GET)
+                    .withExpiration(expiration);
 
-        URL url = s3.generatePresignedUrl(presignedUrlRequest);
-        return url.toString();
+            URL url = s3.generatePresignedUrl(presignedUrlRequest);
+            return url.toString();
+        }
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo não encontrado");
     }
 
     public void deleteObjectIfExists(AmazonS3 s3, String objectName){
         try{
-            s3.deleteObject(bucketName,objectName);
+            if(s3.doesObjectExist(bucketName, objectName)){
+                s3.deleteObject(bucketName,objectName);
+            }
+
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo não encontrado.");
+
         } catch(AmazonServiceException e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Erro ao deletar o arquivo do S3");
         }

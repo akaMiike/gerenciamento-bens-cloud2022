@@ -3,7 +3,6 @@ package com.example.gerenciamentobens.controller;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.example.gerenciamentobens.entity.assets.Asset;
 import com.example.gerenciamentobens.entity.assets.AssetDTO;
 import com.example.gerenciamentobens.entity.assets.AssetsRepository;
@@ -11,7 +10,6 @@ import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
 import com.example.gerenciamentobens.service.S3UtilsService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.http.HttpStatus;
@@ -19,12 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Base64;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 
@@ -32,12 +25,18 @@ import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatc
 @RequestMapping("/users/assets")
 public class UserAssetsController {
 
+    private final AssetsRepository assetsRepository;
+    private final UserRepository userRepository;
+    private final S3UtilsService s3UtilsService;
+    private final AmazonS3 s3Client;
+
     @Autowired
-    private AssetsRepository assetsRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private S3UtilsService s3UtilsService;
+    public UserAssetsController(AssetsRepository assetsRepository, UserRepository userRepository, S3UtilsService s3UtilsService, AmazonS3 s3Client) {
+        this.assetsRepository = assetsRepository;
+        this.userRepository = userRepository;
+        this.s3UtilsService = s3UtilsService;
+        this.s3Client = s3Client;
+    }
 
     @GetMapping("")
     public ResponseEntity<Iterable<Asset>> getAssets(@AuthenticationPrincipal UserDetails userDetails,
@@ -60,11 +59,8 @@ public class UserAssetsController {
         var asset = assetDTO.toModel(user, userDetails.getUsername() + "/" + assetDTO.getName());
         var createdAsset = assetsRepository.save(asset);
 
-        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                            .withRegion(Regions.US_EAST_1)
-                            .build();
 
-        s3UtilsService.createOrUpdateObject(s3, assetDTO.getFile(), createdAsset.getFileReference());
+        s3UtilsService.createOrUpdateObject(s3Client, assetDTO.getFile(), createdAsset.getFileReference());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
     }
@@ -77,14 +73,14 @@ public class UserAssetsController {
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
         Asset userAsset = assetsRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
 
-        var asset = assetDTO.toModel(user, userAsset.getFileReference(), id);
+        String newFilePath = userDetails.getUsername() + "/" + assetDTO.getName();
+        String oldFilePath = userAsset.getFileReference();
+
+        var asset = assetDTO.toModel(user, newFilePath, id);
         var updatedAsset = assetsRepository.save(asset);
 
-        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                            .withRegion(Regions.US_EAST_1)
-                            .build();
-
-        s3UtilsService.createOrUpdateObject(s3, assetDTO.getFile(), userAsset.getFileReference());
+        s3UtilsService.deleteObjectIfExists(s3Client, oldFilePath);
+        s3UtilsService.createOrUpdateObject(s3Client, assetDTO.getFile(), newFilePath);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedAsset);
     }
@@ -95,23 +91,15 @@ public class UserAssetsController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
 
         assetsRepository.deleteById(id);
+        s3UtilsService.deleteObjectIfExists(s3Client, userAsset.getFileReference());
 
-        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                            .withRegion(Regions.US_EAST_1)
-                            .build();
-
-        s3UtilsService.deleteObjectIfExists(s3, userAsset.getFileReference());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{name}")
     public ResponseEntity<String> getAssetPresignedUrl(@AuthenticationPrincipal UserDetails userDetails, @PathVariable("name") String fileName){
-        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
-                            .withRegion(Regions.US_EAST_1)
-                            .build();
-
         String filePath = userDetails.getUsername() + "/" + fileName;
-        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(s3, filePath);
+        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(s3Client, filePath);
         return ResponseEntity.ok(presignedUrl);
     }
 
