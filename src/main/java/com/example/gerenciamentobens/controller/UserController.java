@@ -5,13 +5,16 @@ import com.example.gerenciamentobens.entity.user.UserRepository;
 import com.example.gerenciamentobens.entity.user.UserDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/user")
@@ -40,30 +43,54 @@ public class UserController {
 
         userRepository.save(newUser);
 
-        return ResponseEntity.ok(new UserDTO(newUser));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new UserDTO(newUser));
     }
 
     @GetMapping("")
-    public ResponseEntity<UserDTO> getUser(@AuthenticationPrincipal UserDetails userDetails){
-        User user = userRepository.findByUsername(userDetails.getUsername()).get();
+    public ResponseEntity<UserDTO> getUser(Authentication auth){
+
+        if(auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))){
+            return ResponseEntity.ok(new UserDTO("Admin", auth.getName() ,"admin@admin.com"));
+        }
+
+        User user = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
         return ResponseEntity.ok(new UserDTO(user));
     }
 
-    @DeleteMapping("")
-    public void deleteUser(@AuthenticationPrincipal UserDetails userDetails){
-        User userData = userRepository.findByUsername(userDetails.getUsername()).get();
+    @DeleteMapping(value = {"", "/{username}"})
+    public ResponseEntity<User> deleteUser(Authentication auth, @PathVariable(name = "username", required = false) Optional<String> username){
+        User userData;
+
+        if(auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")) && username.isPresent()){
+            userData = userRepository.findByUsername(username.get()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
+        }
+
+        else{
+            userData = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
+        }
+
         userRepository.deleteById(userData.getId());
+        return ResponseEntity.noContent().build();
+
     }
 
-    @PutMapping("")
-    public ResponseEntity<UserDTO> updateUser(@AuthenticationPrincipal UserDetails userDetails,
-                                              @RequestBody UserDTO userDataUpdated){
+    @PutMapping(value = {"","/{username}"})
+    public ResponseEntity<UserDTO> updateUser(Authentication auth, @RequestBody UserDTO userDataUpdated, @PathVariable(name = "username", required = false) Optional<String> username){
 
         if(userRepository.existsByEmail(userDataUpdated.getEmail()) || userRepository.existsByUsername(userDataUpdated.getUsername())){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and/or Username already exists!");
         }
 
-        User userData = userRepository.findByUsername(userDetails.getUsername()).get();
+        User userData;
+
+        if(auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")) && username.isPresent()){
+            userData = userRepository.findByUsername(username.get()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
+        }
+
+        else{
+            userData = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
+        }
+
         userRepository.save(
                 new User(
                         userData.getId(),
