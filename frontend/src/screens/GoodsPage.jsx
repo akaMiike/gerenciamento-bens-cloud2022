@@ -16,8 +16,11 @@ import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Paper from "@mui/material/Paper";
-import {CardActionArea, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
-import {useState} from "react";
+import {CardActionArea, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fab} from "@mui/material";
+import {useState, useContext, useEffect} from "react";
+import {DataContext} from "../App";
+import {api} from "../api";
+import AddIcon from '@mui/icons-material/Add';
 
 
 
@@ -87,11 +90,15 @@ function ValidationsDialog({ assetId, isOpen, onClose }) {
     </div>
 }
 
-function FormDialog({ isOpen, onClose, data }) {
-    const isCreation = !data
+function FormDialog({ isOpen, onClose, data, reloadGoods }) {
+    const isCreation = !data || !data.id
     const [currentData, setCurrentData] = useState(data || {})
     const [hasChanges, setHasChanges] = useState(false)
     const [file, setFile] = useState()
+
+    useEffect(() => {
+        setCurrentData(data || {}) }, [data])
+
     function fieldSetter(field) { return e => {
         setCurrentData({...currentData, [field]: e.target.value})
         setHasChanges(true)
@@ -100,7 +107,39 @@ function FormDialog({ isOpen, onClose, data }) {
     function validateFields() {
         return !!currentData.name && currentData.name.length >= 1 &&
             !!currentData.location && currentData.location.length >= 1 &&
-            !!currentData.assetNumber && !!file && hasChanges
+                !!currentData.assetNumber && !!file && hasChanges
+    }
+
+    function getFormData() {
+        const formData = new FormData()
+
+        formData.append("file", file)
+        formData.append("name", currentData.name)
+        formData.append("assetNumber", currentData.assetNumber)
+        formData.append("location", currentData.location)
+
+        return formData
+    }
+
+    function createGood() {
+        api
+            .post("users/assets", getFormData(), { headers: {"Content-Type": "multipart/form-data"} })
+            .then(e => reloadGoods())
+            .then(e => {
+                setFile()
+                onClose()
+            })
+
+    }
+
+    function updateGood() {
+        api
+            .put(`users/assets/${currentData.id}`, getFormData(), { headers: {"Content-Type": "multipart/form-data"} })
+            .then(e => reloadGoods())
+            .then(e => {
+                setFile()
+                onClose()
+            })
     }
 
     return (
@@ -141,7 +180,6 @@ function FormDialog({ isOpen, onClose, data }) {
                         id="assetNumber"
                         label="Código do bem"
                         value={currentData.assetNumber}
-                        type="number"
                         fullWidth
                         variant="standard"
                         onChange={fieldSetter("assetNumber")}
@@ -156,8 +194,8 @@ function FormDialog({ isOpen, onClose, data }) {
                     <Button onClick={onClose}>Cancelar</Button>
 
                     {isCreation ?
-                        <Button disabled={!validateFields()} onClick={onClose}>Cadastrar</Button> :
-                        <Button disabled={!validateFields()} onClick={onClose}>Salvar</Button>}
+                        <Button disabled={!validateFields()} onClick={createGood}>Cadastrar</Button> :
+                        <Button disabled={!validateFields()} onClick={updateGood}>Salvar</Button>}
 
                 </DialogActions>
             </Dialog>
@@ -167,20 +205,41 @@ function FormDialog({ isOpen, onClose, data }) {
 
 export default function GoodsPage() {
     const [isEditModalOpen, setEditModalOpen] = useState(false)
+    const [selectedGood, setSelectedGood] = useState()
     const [isValidationModalOpen, setValidationModalOpen] = useState(false)
-    const [validationAssetId, setValidationAssetId] = useState()
+    const [validationGoodId, setValidationGoodId] = useState()
+    const { data, setData } = useContext(DataContext)
+    const [filters, setFilters] = useState({ nameOn: false, locationOn: false, name: "", location: "" })
 
+    useEffect(() => {
+        loadGoods()
+    }, [])
 
-    function openEditModal() { setEditModalOpen(true) }
+    function loadGoods() {
+        const nameQuery = filters.nameOn && filters.name.trim().length > 0 ? { name: filters.name } : {}
+        const locationQuery = filters.locationOn && filters.location.trim().length > 0 ? { location: filters.location } : {}
+
+        return api
+            .get("/users/assets", { params: {...nameQuery, ...locationQuery} })
+            .then(r => setData({...data, goodsList: r.data}))
+    }
+
+    const goodsList = data.goodsList || []
+
+    function openEditModal(good) {
+        setEditModalOpen(true)
+        setSelectedGood(good)
+    }
+
     function closeEditModal() { setEditModalOpen(false) }
     function openValidationModal(assetId) {
         setValidationModalOpen(true)
-        setValidationAssetId(assetId)
+        setValidationGoodId(assetId)
     }
     function closeValidationModal() { setValidationModalOpen(false) }
 
-    const cards = Array(10).fill((<Grid item xs={3} sx={{ maxWidth: 345 }}><Card>
-        <CardActionArea onClick={openEditModal} >
+    const cards = goodsList.map(good => (<Grid key={good.id} item xs={3} sx={{ maxWidth: 345 }}><Card>
+        <CardActionArea onClick={e => openEditModal(good)} >
             <CardMedia
                 component="img"
                 height="140"
@@ -189,14 +248,14 @@ export default function GoodsPage() {
             />
             <CardContent>
                 <Typography gutterBottom variant="h5" component="div">
-                    assetName
+                    {good.name}
                 </Typography>
                 <Box sx={{display: "flex", justifyContent: "space-between"}}>
                     <Typography variant="overline">
                         Localização
                     </Typography>
                     <Typography variant="subtitle1" color="text.secondary">
-                        Sala
+                        {good.location}
                     </Typography>
                 </Box>
                 <Box sx={{display: "flex", justifyContent: "space-between"}}>
@@ -204,7 +263,7 @@ export default function GoodsPage() {
                         Código do patrimonio
                     </Typography>
                     <Typography variant="subtitle1" color="text.secondary">
-                        1234
+                        {good.assetNumber}
                     </Typography>
                 </Box>
                 <Box sx={{display: "flex", justifyContent: "space-between"}}>
@@ -212,17 +271,25 @@ export default function GoodsPage() {
                         Cadastrado por
                     </Typography>
                     <Typography variant="subtitle1" color="text.secondary">
-                        Vinicius
+                        {good.user.fullName}
                     </Typography>
                 </Box>
             </CardContent>
         </CardActionArea>
         <CardActions>
-            <Button onClick={openEditModal} size="small">Detalhes</Button>
+            <Button onClick={e => openEditModal(good)} size="small">Detalhes</Button>
             <Button onClick={e => openValidationModal(5)} size="small">Validações</Button>
             <Button color={"error"} size="small">Excluir</Button>
         </CardActions>
     </Card></Grid>))
+
+    function checkFilter(name) {
+        return (e) => setFilters({...filters, [name]: e.target.checked})
+    }
+
+    function includeFilter(name) {
+        return (e) => setFilters({...filters, [name]: e.target.value})
+    }
 
     return (
         <ThemeProvider theme={theme}>
@@ -239,7 +306,7 @@ export default function GoodsPage() {
                                 <MenuIcon />
                             </IconButton>
                             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                                News
+                                Bens
                             </Typography>
                             <Button color="inherit">Login</Button>
                         </Toolbar>
@@ -249,18 +316,30 @@ export default function GoodsPage() {
                     <Grid container spacing={1} direction={"column"}>
                         <Grid item xs={3}>
                             <Paper sx={{p: "14px", display: "flex", justifyContent: "space-around"}}>
-                                <FormControlLabel control={<Checkbox defaultChecked />} label="Filtrar por nome" />
+                                <FormControlLabel control={<Checkbox onChange={checkFilter("nameOn")}
+                                                                     value={filters.nameOn} />} label="Filtrar por nome" />
 
-                                <TextField size={"small"} id="name-filter" label="Nome" variant="outlined" />
+                                <TextField onChange={includeFilter("name")}
+                                           disabled={!filters.nameOn}
+                                           size={"small"}
+                                           id="name-filter"
+                                           label="Nome"
+                                           variant="outlined" />
 
-                                <FormControlLabel control={<Checkbox defaultChecked />} label="Filtrar por localização" />
+                                <FormControlLabel control={<Checkbox onChange={checkFilter("locationOn")}
+                                                                     value={filters.locationOn} />} label="Filtrar por localização" />
 
-                                <TextField size={"small"} id="location-filter" label="Localização" variant="outlined" />
+                                <TextField onChange={includeFilter("location")}
+                                           disabled={!filters.locationOn}
+                                           size={"small"}
+                                           id="location-filter"
+                                           label="Localização"
+                                           variant="outlined" />
 
                                 <Button
                                     type="submit"
                                     variant="contained"
-                                    // sx={{ mt: 3, mb: 2 }}
+                                    onClick={loadGoods}
                                 >
                                     Filtrar
                                 </Button>
@@ -272,34 +351,16 @@ export default function GoodsPage() {
                                 {cards}
                             </Grid>
                         </Grid>
-
-                        {/*<Card sx={{ maxWidth: 345 }}>*/}
-                        {/*    <CardMedia*/}
-                        {/*        component="img"*/}
-                        {/*        height="140"*/}
-                        {/*        image="https://mui.com/static/images/cards/contemplative-reptile.jpg"*/}
-                        {/*        alt="green iguana"*/}
-                        {/*    />*/}
-                        {/*    <CardContent>*/}
-                        {/*        <Typography gutterBottom variant="h5" component="div">*/}
-                        {/*            Lizard*/}
-                        {/*        </Typography>*/}
-                        {/*        <Typography variant="body2" color="text.secondary">*/}
-                        {/*            Lizards are a widespread group of squamate reptiles, with over 6,000*/}
-                        {/*            species, ranging across all continents except Antarctica*/}
-                        {/*        </Typography>*/}
-                        {/*    </CardContent>*/}
-                        {/*    <CardActions>*/}
-                        {/*        <Button size="small">Share</Button>*/}
-                        {/*        <Button size="small">Learn More</Button>*/}
-                        {/*    </CardActions>*/}
-                        {/*</Card>*/}
                     </Grid>
 
+                    <Fab onClick={e => openEditModal({name: "", location: "", assetNumber: ""})} color="primary" aria-label="add" sx={{position: 'fixed', bottom: 30, right: 30}}>
+                        <AddIcon />
+                    </Fab>
+
                 </Container>
-                {/*<FormDialog data={{"name": "Asset", "assetNumber": 123, "location": "Bla"}} isOpen={isEditModalOpen} onClose={closeEditModal}></FormDialog>*/}
-                <FormDialog isOpen={isEditModalOpen} onClose={closeEditModal}></FormDialog>
-                <ValidationsDialog isOpen={isValidationModalOpen} assetId={validationAssetId} onClose={closeValidationModal}></ValidationsDialog>
+
+                <FormDialog reloadGoods={loadGoods} data={selectedGood} isOpen={isEditModalOpen} onClose={closeEditModal}></FormDialog>
+                <ValidationsDialog isOpen={isValidationModalOpen} assetId={validationGoodId} onClose={closeValidationModal}></ValidationsDialog>
         </ThemeProvider>
     );
 }

@@ -26,7 +26,7 @@ public class Asset {
     private String assetNumber;
     private String location;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_user")
     private User user;
 
