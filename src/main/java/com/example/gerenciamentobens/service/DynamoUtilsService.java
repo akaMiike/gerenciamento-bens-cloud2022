@@ -23,9 +23,43 @@ public class DynamoUtilsService {
             Key key = Key.builder()
                     .partitionValue(id)
                     .build();
-            return table.getItem(key);
+            Validation validation = table.getItem(key);
+
+            if(validation == null){
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Log de validação não encontrado.");
+            }
+
+            return validation;
         } catch(DynamoDbException e ){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Erro ao obter o log de validação do DynamoDB");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
+        }
+    }
+
+    public Validation putItem(Validation validation){
+        try{
+            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+            table.putItem(validation);
+            return validation;
+        } catch(DynamoDbException e ){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Erro ao inserir o log de validação do DynamoDB");
+        }
+    }
+
+    public void deleteItem(String id){
+        try{
+            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+            Key key = Key.builder()
+                    .partitionValue(id)
+                    .build();
+
+            Validation deletedValidation = table.deleteItem(key);
+
+            if(deletedValidation == null){
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Log de validação não encontrado.");
+            }
+
+        } catch(DynamoDbException e){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao excluir o log de validação do Dynamo");
         }
     }
 }
