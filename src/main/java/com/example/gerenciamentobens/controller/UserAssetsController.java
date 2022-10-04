@@ -1,13 +1,12 @@
 package com.example.gerenciamentobens.controller;
 
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.example.gerenciamentobens.entity.assets.Asset;
 import com.example.gerenciamentobens.entity.assets.AssetDTO;
 import com.example.gerenciamentobens.entity.assets.AssetsRepository;
 import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
+import com.example.gerenciamentobens.service.DynamoUtilsService;
 import com.example.gerenciamentobens.service.S3UtilsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -29,13 +28,15 @@ public class UserAssetsController {
     private final UserRepository userRepository;
     private final S3UtilsService s3UtilsService;
     private final AmazonS3 s3Client;
+    private final DynamoUtilsService dynamoUtilsService;
 
     @Autowired
-    public UserAssetsController(AssetsRepository assetsRepository, UserRepository userRepository, S3UtilsService s3UtilsService, AmazonS3 s3Client) {
+    public UserAssetsController(AssetsRepository assetsRepository, UserRepository userRepository, S3UtilsService s3UtilsService, AmazonS3 s3Client, DynamoUtilsService dynamoUtilsService) {
         this.assetsRepository = assetsRepository;
         this.userRepository = userRepository;
         this.s3UtilsService = s3UtilsService;
         this.s3Client = s3Client;
+        this.dynamoUtilsService = dynamoUtilsService;
     }
 
     @GetMapping("")
@@ -65,7 +66,7 @@ public class UserAssetsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
     }
 
-    @PutMapping("{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Asset> updateAsset(@AuthenticationPrincipal UserDetails userDetails,
                                              @ModelAttribute AssetDTO assetDTO,
                                              @PathVariable Long id) {
@@ -85,13 +86,14 @@ public class UserAssetsController {
         return ResponseEntity.status(HttpStatus.OK).body(updatedAsset);
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Asset> deleteAsset(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long id) {
         var userAsset = assetsRepository.findByIdAndUserUsername(id, userDetails.getUsername()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
 
-        assetsRepository.deleteById(id);
         s3UtilsService.deleteObjectIfExists(s3Client, userAsset.getFileReference());
+        dynamoUtilsService.deleteAllValidationsFromAsset(userAsset.getId());
+        assetsRepository.deleteById(id);
 
         return ResponseEntity.noContent().build();
     }

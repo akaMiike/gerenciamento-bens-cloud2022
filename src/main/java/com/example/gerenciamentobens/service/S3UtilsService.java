@@ -58,9 +58,9 @@ public class S3UtilsService {
             if(s3.doesObjectExist(bucketName, objectName)){
                 s3.deleteObject(bucketName,objectName);
             }
-
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo não encontrado.");
-
+            else{
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo não encontrado.");
+            }
         } catch(AmazonServiceException e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Erro ao deletar o arquivo do S3");
         }
