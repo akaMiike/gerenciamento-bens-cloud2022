@@ -1,15 +1,17 @@
 package com.example.gerenciamentobens.service;
 
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import com.example.gerenciamentobens.entity.validations.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
+
+import java.util.Iterator;
+import java.util.List;
 
 @Service
 public class DynamoUtilsService {
@@ -61,5 +63,25 @@ public class DynamoUtilsService {
         } catch(DynamoDbException e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao excluir o log de validação do Dynamo");
         }
+    }
+
+    public void deleteAllValidationsFromAsset(Long idAsset){
+        DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+
+        Expression expression = Expression.builder()
+                .expression("idAsset = :idAsset")
+                .putExpressionValue(":idAsset", AttributeValue.fromN(idAsset.toString()))
+                .build();
+
+        ScanEnhancedRequest scan = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .build();
+
+        List<Validation> results = table.scan(scan).items().stream().toList();
+
+        for(Validation result : results){
+            table.deleteItem(Key.builder().partitionValue(result.getId()).build());
+        }
+
     }
 }
