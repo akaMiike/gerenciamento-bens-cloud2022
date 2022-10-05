@@ -20,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,7 +45,7 @@ public class UserAssetsController {
     }
 
     @GetMapping("")
-    public ResponseEntity<Iterable<Asset>> getAssets(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Iterable<AssetUrlDTO>> getAssets(@AuthenticationPrincipal UserDetails userDetails,
                                                      @RequestParam(required = false) String name,
                                                      @RequestParam(required = false) String location) {
         ExampleMatcher matcher = ExampleMatcher
@@ -53,7 +54,15 @@ public class UserAssetsController {
                 .withMatcher("location", contains().ignoreCase());
         Asset example = new Asset(null, null, name, null, location, null);
 
-        return ResponseEntity.ok(assetsRepository.findAll(Example.of(example, matcher)));
+        var assets = assetsRepository.findAll(Example.of(example, matcher));
+        var assetsWithDownloadURL = new ArrayList<AssetUrlDTO>();
+
+        for (Asset asset : assets) {
+            String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(asset.getFileReference());
+            assetsWithDownloadURL.add(new AssetUrlDTO(asset, presignedUrl));
+        }
+
+        return ResponseEntity.ok(assetsWithDownloadURL);
     }
 
     @PostMapping("")

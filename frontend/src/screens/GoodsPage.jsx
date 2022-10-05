@@ -42,6 +42,11 @@ function ValidationsDialog({ assetId, isOpen, onClose }) {
         onClose()
     }
 
+    function parseCreatedAt(createdAt) {
+        const date = new Date(createdAt)
+        return `${date.getHours()}:${date.getMinutes()}:${5}`
+    }
+
     const cards = validations.map(validation => <Card sx={{mb: "8px"}}>
         <CardContent>
             <Typography gutterBottom variant="h5" component="div">
@@ -51,8 +56,8 @@ function ValidationsDialog({ assetId, isOpen, onClose }) {
                 <Typography variant="overline">
                     Horário
                 </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                    {validation.createdAt}
+                <Typography sx={{marginLeft: "40px"}} variant="subtitle1" color="text.secondary">
+                    {new Date(validation.createdAt).toISOString()}
                 </Typography>
             </Box>
             <Box sx={{display: "flex", justifyContent: "space-between"}}>
@@ -75,54 +80,6 @@ function ValidationsDialog({ assetId, isOpen, onClose }) {
                 </DialogContentText>
 
                 {cards}
-
-                {/*<Card sx={{mb: "8px"}}>*/}
-                {/*    <CardContent>*/}
-                {/*        <Typography gutterBottom variant="h5" component="div">*/}
-                {/*            Validado*/}
-                {/*        </Typography>*/}
-                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
-                {/*            <Typography variant="overline">*/}
-                {/*                Horário*/}
-                {/*            </Typography>*/}
-                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
-                {/*                23:49*/}
-                {/*            </Typography>*/}
-                {/*        </Box>*/}
-                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
-                {/*            <Typography variant="overline">*/}
-                {/*                Justificativa*/}
-                {/*            </Typography>*/}
-                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
-                {/*                Uma justificativa muito justa*/}
-                {/*            </Typography>*/}
-                {/*        </Box>*/}
-                {/*    </CardContent>*/}
-                {/*</Card>*/}
-                {/*<Card>*/}
-                {/*    <CardContent>*/}
-                {/*        <Typography gutterBottom variant="h5" component="div">*/}
-                {/*            Validado*/}
-                {/*        </Typography>*/}
-                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
-                {/*            <Typography variant="overline">*/}
-                {/*                Horário*/}
-                {/*            </Typography>*/}
-                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
-                {/*                23:49*/}
-                {/*            </Typography>*/}
-                {/*        </Box>*/}
-                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
-                {/*            <Typography variant="overline">*/}
-                {/*                Justificativa*/}
-                {/*            </Typography>*/}
-                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
-                {/*                Uma justificativa muito justa*/}
-                {/*            </Typography>*/}
-                {/*        </Box>*/}
-                {/*    </CardContent>*/}
-                {/*</Card>*/}
-
             </DialogContent>
             <DialogActions>
                 <Button onClick={close}>Fechar</Button>
@@ -219,7 +176,7 @@ function FormDialog({ isOpen, onClose, data, reloadGoods }) {
                         autoFocus
                         margin="dense"
                         id="assetNumber"
-                        label="Id do bem"
+                        label="Codigo do patrimonio"
                         value={currentData.assetNumber}
                         fullWidth
                         variant="standard"
@@ -287,50 +244,64 @@ export default function GoodsPage() {
             .then(e => loadGoods())
     }
 
-    const cards = goodsList.map(good => (<Grid key={good.id} item xs={3} sx={{ maxWidth: 345 }}><Card>
-        <CardActionArea onClick={e => openEditModal(good)} >
-            <CardMedia
-                component="img"
-                height="140"
-                image="https://play-lh.googleusercontent.com/BkRfMfIRPR9hUnmIYGDgHHKjow-g18-ouP6B2ko__VnyUHSi1spcc78UtZ4sVUtBH4g"
-                alt="green iguana"
-            />
-            <CardContent>
-                <Typography gutterBottom variant="h5" component="div">
-                    {good.name}
-                </Typography>
-                <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                    <Typography variant="overline">
-                        Localização
+    const cards = goodsList.map(goodWithDownloadUrl => {
+        const good = goodWithDownloadUrl.asset
+        const downloadUrl = goodWithDownloadUrl.presignedUrl
+
+        return (<Grid key={good.id} item xs={4} sx={{ maxWidth: 345 }}><Card>
+            <CardActionArea onClick={e => openEditModal(good)} >
+                {/*<CardMedia*/}
+                {/*    component="img"*/}
+                {/*    height="140"*/}
+                {/*    image="https://play-lh.googleusercontent.com/BkRfMfIRPR9hUnmIYGDgHHKjow-g18-ouP6B2ko__VnyUHSi1spcc78UtZ4sVUtBH4g"*/}
+                {/*    alt="green iguana"*/}
+                {/*/>*/}
+                <CardContent>
+                    <Typography gutterBottom variant="h5" component="div">
+                        {good.name}
                     </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
-                        {good.location}
-                    </Typography>
-                </Box>
-                <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                    <Typography variant="overline">
-                        Código do patrimonio
-                    </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
-                        {good.assetNumber}
-                    </Typography>
-                </Box>
-                <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                    <Typography variant="overline">
-                        Cadastrado por
-                    </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
-                        {good.user.fullName}
-                    </Typography>
-                </Box>
-            </CardContent>
-        </CardActionArea>
-        <CardActions>
-            <Button onClick={e => openEditModal(good)} size="small">Detalhes</Button>
-            <Button onClick={e => openValidationModal(good.id)} size="small">Validações</Button>
-            <Button onClick={e => deleteGood(good.id)} color={"error"} size="small">Excluir</Button>
-        </CardActions>
-    </Card></Grid>))
+                    <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                        <Typography variant="overline">
+                            Localização
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary">
+                            {good.location}
+                        </Typography>
+                    </Box>
+                    <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                        <Typography variant="overline">
+                            Código do patrimonio
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary">
+                            {good.assetNumber}
+                        </Typography>
+                    </Box>
+                    <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                        <Typography variant="overline">
+                            Id do patrimonio
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary">
+                            {good.id}
+                        </Typography>
+                    </Box>
+                    <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                        <Typography variant="overline">
+                            Cadastrado por
+                        </Typography>
+                        <Typography variant="subtitle1" color="text.secondary">
+                            {good.user.fullName}
+                        </Typography>
+                    </Box>
+                </CardContent>
+            </CardActionArea>
+            <CardActions>
+                <Button onClick={e => openEditModal(good)} size="small">Detalhes</Button>
+                <Button target={"_blank"} rel="noopener noreferrer" href={downloadUrl} size="small">Ver arquivo</Button>
+                <Button onClick={e => openValidationModal(good.id)} size="small">Validações</Button>
+                <Button onClick={e => deleteGood(good.id)} color={"error"} size="small">Excluir</Button>
+            </CardActions>
+        </Card></Grid>)
+    })
 
     function checkFilter(name) {
         return (e) => setFilters({...filters, [name]: e.target.checked})
