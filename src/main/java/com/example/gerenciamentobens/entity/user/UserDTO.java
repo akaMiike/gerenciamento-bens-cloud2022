@@ -21,7 +21,7 @@ public class UserDTO {
     @Email(message = "O campo email deve possuir formato de email")
     private String email;
 
-    @Size(min = 8, message = "A senha deve possuir no mínimo 8 caracteres")
+    @Size(min = 4, message = "A senha deve possuir no mínimo 4 caracteres")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 

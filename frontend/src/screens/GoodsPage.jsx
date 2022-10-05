@@ -18,73 +18,114 @@ import Checkbox from "@mui/material/Checkbox";
 import Paper from "@mui/material/Paper";
 import {CardActionArea, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fab} from "@mui/material";
 import {useState, useContext, useEffect} from "react";
-import {DataContext} from "../App";
+import {AuthContext, DataContext} from "../App";
 import {api} from "../api";
 import AddIcon from '@mui/icons-material/Add';
+import axios from "axios";
+import {useNavigate} from "react-router-dom";
 
 
 
 const theme = createTheme();
 
 function ValidationsDialog({ assetId, isOpen, onClose }) {
+    const [validations, setValidations] = useState([])
+
+    useEffect(() => {
+        api
+            .get(`/users/assets/validations/${assetId}`)
+            .then(response => setValidations(response.data))
+    }, [assetId])
+
+    function close() {
+        setValidations([])
+        onClose()
+    }
+
+    const cards = validations.map(validation => <Card sx={{mb: "8px"}}>
+        <CardContent>
+            <Typography gutterBottom variant="h5" component="div">
+                {validation.validation ? "Validado" : "Invalidado"}
+            </Typography>
+            <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                <Typography variant="overline">
+                    Horário
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                    {validation.createdAt}
+                </Typography>
+            </Box>
+            <Box sx={{display: "flex", justifyContent: "space-between"}}>
+                <Typography variant="overline">
+                    Justificativa
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                    {validation.justification}
+                </Typography>
+            </Box>
+        </CardContent>
+    </Card>)
+
     return <div>
-        <Dialog open={isOpen} onClose={onClose}>
+        <Dialog open={isOpen} onClose={close}>
             <DialogTitle>{"Validações"}</DialogTitle>
             <DialogContent>
                 <DialogContentText sx={{mb: "12px"}}>
                     Log de validações do bem
                 </DialogContentText>
 
-                <Card sx={{mb: "8px"}}>
-                    <CardContent>
-                        <Typography gutterBottom variant="h5" component="div">
-                            Validado
-                        </Typography>
-                        <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography variant="overline">
-                                Horário
-                            </Typography>
-                            <Typography variant="subtitle1" color="text.secondary">
-                                23:49
-                            </Typography>
-                        </Box>
-                        <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography variant="overline">
-                                Justificativa
-                            </Typography>
-                            <Typography variant="subtitle1" color="text.secondary">
-                                Uma justificativa muito justa
-                            </Typography>
-                        </Box>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent>
-                        <Typography gutterBottom variant="h5" component="div">
-                            Validado
-                        </Typography>
-                        <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography variant="overline">
-                                Horário
-                            </Typography>
-                            <Typography variant="subtitle1" color="text.secondary">
-                                23:49
-                            </Typography>
-                        </Box>
-                        <Box sx={{display: "flex", justifyContent: "space-between"}}>
-                            <Typography variant="overline">
-                                Justificativa
-                            </Typography>
-                            <Typography variant="subtitle1" color="text.secondary">
-                                Uma justificativa muito justa
-                            </Typography>
-                        </Box>
-                    </CardContent>
-                </Card>
+                {cards}
+
+                {/*<Card sx={{mb: "8px"}}>*/}
+                {/*    <CardContent>*/}
+                {/*        <Typography gutterBottom variant="h5" component="div">*/}
+                {/*            Validado*/}
+                {/*        </Typography>*/}
+                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
+                {/*            <Typography variant="overline">*/}
+                {/*                Horário*/}
+                {/*            </Typography>*/}
+                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
+                {/*                23:49*/}
+                {/*            </Typography>*/}
+                {/*        </Box>*/}
+                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
+                {/*            <Typography variant="overline">*/}
+                {/*                Justificativa*/}
+                {/*            </Typography>*/}
+                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
+                {/*                Uma justificativa muito justa*/}
+                {/*            </Typography>*/}
+                {/*        </Box>*/}
+                {/*    </CardContent>*/}
+                {/*</Card>*/}
+                {/*<Card>*/}
+                {/*    <CardContent>*/}
+                {/*        <Typography gutterBottom variant="h5" component="div">*/}
+                {/*            Validado*/}
+                {/*        </Typography>*/}
+                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
+                {/*            <Typography variant="overline">*/}
+                {/*                Horário*/}
+                {/*            </Typography>*/}
+                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
+                {/*                23:49*/}
+                {/*            </Typography>*/}
+                {/*        </Box>*/}
+                {/*        <Box sx={{display: "flex", justifyContent: "space-between"}}>*/}
+                {/*            <Typography variant="overline">*/}
+                {/*                Justificativa*/}
+                {/*            </Typography>*/}
+                {/*            <Typography variant="subtitle1" color="text.secondary">*/}
+                {/*                Uma justificativa muito justa*/}
+                {/*            </Typography>*/}
+                {/*        </Box>*/}
+                {/*    </CardContent>*/}
+                {/*</Card>*/}
 
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Fechar</Button>
+                <Button onClick={close}>Fechar</Button>
             </DialogActions>
         </Dialog>
     </div>
@@ -178,7 +219,7 @@ function FormDialog({ isOpen, onClose, data, reloadGoods }) {
                         autoFocus
                         margin="dense"
                         id="assetNumber"
-                        label="Código do bem"
+                        label="Id do bem"
                         value={currentData.assetNumber}
                         fullWidth
                         variant="standard"
@@ -209,7 +250,9 @@ export default function GoodsPage() {
     const [isValidationModalOpen, setValidationModalOpen] = useState(false)
     const [validationGoodId, setValidationGoodId] = useState()
     const { data, setData } = useContext(DataContext)
+    const { logout } = useContext(AuthContext)
     const [filters, setFilters] = useState({ nameOn: false, locationOn: false, name: "", location: "" })
+    const navigate = useNavigate()
 
     useEffect(() => {
         loadGoods()
@@ -237,6 +280,12 @@ export default function GoodsPage() {
         setValidationGoodId(assetId)
     }
     function closeValidationModal() { setValidationModalOpen(false) }
+
+    function deleteGood(goodId) {
+        api
+            .delete(`/users/assets/${goodId}`)
+            .then(e => loadGoods())
+    }
 
     const cards = goodsList.map(good => (<Grid key={good.id} item xs={3} sx={{ maxWidth: 345 }}><Card>
         <CardActionArea onClick={e => openEditModal(good)} >
@@ -278,8 +327,8 @@ export default function GoodsPage() {
         </CardActionArea>
         <CardActions>
             <Button onClick={e => openEditModal(good)} size="small">Detalhes</Button>
-            <Button onClick={e => openValidationModal(5)} size="small">Validações</Button>
-            <Button color={"error"} size="small">Excluir</Button>
+            <Button onClick={e => openValidationModal(good.id)} size="small">Validações</Button>
+            <Button onClick={e => deleteGood(good.id)} color={"error"} size="small">Excluir</Button>
         </CardActions>
     </Card></Grid>))
 
@@ -291,24 +340,21 @@ export default function GoodsPage() {
         return (e) => setFilters({...filters, [name]: e.target.value})
     }
 
+    function onLogout() {
+        logout()
+        navigate("/")
+    }
+
     return (
         <ThemeProvider theme={theme}>
                 <Box sx={{ flexGrow: 1, marginBottom: 2 }}>
                     <AppBar position="static">
                         <Toolbar>
-                            <IconButton
-                                size="large"
-                                edge="start"
-                                color="inherit"
-                                aria-label="menu"
-                                sx={{ mr: 2 }}
-                            >
-                                <MenuIcon />
-                            </IconButton>
                             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                                 Bens
                             </Typography>
-                            <Button color="inherit">Login</Button>
+                            <Button onClick={e => navigate("/")} color="inherit">Home</Button>
+                            <Button onClick={onLogout} color="inherit">Sair</Button>
                         </Toolbar>
                     </AppBar>
                 </Box>

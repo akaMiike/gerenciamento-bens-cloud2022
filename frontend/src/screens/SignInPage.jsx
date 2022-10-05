@@ -21,10 +21,43 @@ import {useContext, useState} from "react";
 import {AuthContext, DataContext} from "../App";
 import {api, setApiAuth} from "../api";
 import { useNavigate } from "react-router-dom";
+import {ErrorDialog} from "../components/ErrorDialog";
 
 const theme = createTheme();
 
 function SignUpDialog({isOpen, onClose}) {
+    const [signUpData, setSignUpData] = useState({
+        "fullName": "",
+        "username": "",
+        "email": "",
+        "password": "",
+    })
+
+    function fieldSetter(fieldName) {
+        return (e) => setSignUpData({...signUpData, [fieldName]: e.target.value})
+    }
+
+    function onSubmit(e) {
+        e.preventDefault()
+
+        api
+            .post("/user/register", signUpData)
+            .then(onClose)
+    }
+
+    function checkBlank(string) { return string.trim().length === 0 }
+
+    function validateEmail(email) {
+        var re = /\S+@\S+\.\S+/;
+        return re.test(email);
+    }
+
+    function disableSubmit() {
+        return signUpData.password.length < 4
+            || checkBlank(signUpData.username) || checkBlank(signUpData.email) || checkBlank(signUpData.fullName)
+            || !validateEmail(signUpData.email)
+    }
+
     return <div>
         <Dialog open={isOpen} onClose={onClose}>
             <DialogTitle>{"Criação de conta"}</DialogTitle>
@@ -33,7 +66,7 @@ function SignUpDialog({isOpen, onClose}) {
                     Preencha seus dados abaixo para criar uma nova conta
                 </DialogContentText>
 
-                <Box component="form" onSubmit={e => e.preventDefault()} noValidate sx={{mt: 1}}>
+                <Box component="form" onSubmit={onSubmit} noValidate sx={{mt: 1}}>
                     <TextField
                         margin="normal"
                         required
@@ -42,6 +75,7 @@ function SignUpDialog({isOpen, onClose}) {
                         label="Nome completo"
                         name="fullName"
                         autoComplete="fullName"
+                        onChange={fieldSetter("fullName")}
                         autoFocus
                     />
                     <TextField
@@ -52,6 +86,7 @@ function SignUpDialog({isOpen, onClose}) {
                         label="E-mail"
                         name="email"
                         autoComplete="email"
+                        onChange={fieldSetter("email")}
                         autoFocus
                         type={"email"}
                     />
@@ -63,6 +98,7 @@ function SignUpDialog({isOpen, onClose}) {
                         label="Nome de usuario"
                         name="username"
                         autoComplete="username"
+                        onChange={fieldSetter("username")}
                         autoFocus
                     />
                     <TextField
@@ -74,12 +110,14 @@ function SignUpDialog({isOpen, onClose}) {
                         type="password"
                         id="password"
                         autoComplete="current-password"
+                        onChange={fieldSetter("password")}
                     />
                     <Button
                         type="submit"
                         fullWidth
                         variant="contained"
                         sx={{mt: 3, mb: 2}}
+                        disabled={disableSubmit()}
                     >
                         Criar conta
                     </Button>
@@ -96,9 +134,11 @@ function SignUpDialog({isOpen, onClose}) {
 
 export default function SignIn() {
     const [isSignupOpen, setSignupOpen] = useState(false)
-    const { auth, setAuth} = useContext(AuthContext)
+    const { auth, setAuth, logout } = useContext(AuthContext)
     const { data, setData } = useContext(DataContext)
+    const [assetId, setAssetId] = useState()
     const navigate = useNavigate()
+    const [errorDialog, setErrorDialog] = useState({ isOpen: false })
 
     function openSignupModal() {
         setSignupOpen(true)
@@ -115,7 +155,6 @@ export default function SignIn() {
         const username = data.get('username')
         const password = data.get('password')
 
-        // setApiAuth(username, password)
         setAuth({ username, password })
         api
             .get("/users/assets")
@@ -123,7 +162,18 @@ export default function SignIn() {
                 setData({...data, goodsList: r.data})
                 navigate("/goods")
             })
+            .catch(() => {
+                setErrorDialog({ isOpen: true, title: "Credenciais inválidas",
+                    description: "Verifique suas credenciais e tente novamente!", onClose: () => {
+                        logout()
+                        setErrorDialog({ isOpen: false })
+                    } })
+            })
     };
+
+    function goToAssetValidationPage() {
+        navigate(`/goods/validate/${assetId}`)
+    }
 
     return (
         <ThemeProvider theme={theme}>
@@ -152,7 +202,7 @@ export default function SignIn() {
                                     Insira abaixo o código do bem para validá-lo.
                                 </Typography>
 
-                                <Box component="form" onSubmit={() => {}} noValidate sx={{mt: 1}}>
+                                <Box noValidate sx={{mt: 1}}>
                                     <TextField
                                         margin="normal"
                                         required
@@ -161,7 +211,11 @@ export default function SignIn() {
                                         label="Código do bem"
                                         name="assetCode"
                                         autoComplete="assetCode"
+                                        type={"number"}
                                         autoFocus
+                                        onChange={e => {
+                                            setAssetId(parseInt(e.target.value))
+                                        }}
                                     />
 
                                     <Button
@@ -169,6 +223,8 @@ export default function SignIn() {
                                         fullWidth
                                         variant="contained"
                                         sx={{mt: 3, mb: 2}}
+                                        disabled={!assetId}
+                                        onClick={e => goToAssetValidationPage()}
                                     >
                                         Ir para validação
                                     </Button>
@@ -209,6 +265,7 @@ export default function SignIn() {
                                             fullWidth
                                             variant="contained"
                                             sx={{mt: 3, mb: 2}}
+                                            onClick={e => navigate("/goods")}
                                         >
                                             Entrar
                                         </Button>
@@ -259,6 +316,7 @@ export default function SignIn() {
                 </Grid>
             </Container>
             <SignUpDialog isOpen={isSignupOpen} onClose={closeSignupModal}></SignUpDialog>
+            <ErrorDialog dialogData={errorDialog}></ErrorDialog>
         </ThemeProvider>
     );
 }

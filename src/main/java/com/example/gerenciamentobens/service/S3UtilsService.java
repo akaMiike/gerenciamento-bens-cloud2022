@@ -34,7 +34,8 @@ public class S3UtilsService {
             amazonS3.putObject(bucketName, filePath, file.getInputStream(), fileMetadata);
         }
         catch(Exception e){
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Houve um erro ao realizar o upload do arquivo para a S3");
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Houve um erro ao realizar o upload do arquivo para o S3");
         }
     }
 
@@ -60,9 +61,6 @@ public class S3UtilsService {
         try{
             if(amazonS3.doesObjectExist(bucketName, objectName)){
                 amazonS3.deleteObject(bucketName,objectName);
-            }
-            else{
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo não encontrado.");
             }
         } catch(AmazonServiceException e){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Erro ao deletar o arquivo do S3");

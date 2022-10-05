@@ -8,7 +8,7 @@ import {
   Route,
 } from "react-router-dom";
 import {useState} from "react";
-import {setApiAuth} from "./api";
+import {setApiAuth, unsetApiAuth} from "./api";
 
 export const AuthContext = React.createContext({});
 export const DataContext = React.createContext({});
@@ -34,7 +34,13 @@ function App() {
     localStorage.setItem("auth", JSON.stringify(newAuth) )
   }
 
-  return <AuthContext.Provider value={{ auth, setAuth: updateAuth }}>
+  function logout() {
+    setAuth()
+    unsetApiAuth()
+    localStorage.removeItem("auth")
+  }
+
+  return <AuthContext.Provider value={{ auth, setAuth: updateAuth, logout }}>
     <DataContext.Provider value={{ data, setData }}>
       <BrowserRouter>
           <Routes>
@@ -47,13 +53,6 @@ function App() {
             <Route path="/goods/validate/:assetId" element={<ValidationPage />}>
 
             </Route>
-
-
-            {/*<Route path="teams" element={<Teams />}>*/}
-            {/*  <Route path=":teamId" element={<Team />} />*/}
-            {/*  <Route path="new" element={<NewTeamForm />} />*/}
-            {/*  <Route index element={<LeagueStandings />} />*/}
-            {/*</Route>*/}
           </Routes>
         </BrowserRouter>
     </DataContext.Provider>
