@@ -1,5 +1,6 @@
 package com.example.gerenciamentobens.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import com.example.gerenciamentobens.entity.validations.Validation;
@@ -10,18 +11,19 @@ import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 
-import java.util.Iterator;
 import java.util.List;
 
 @Service
 public class DynamoUtilsService {
 
+    @Value("${aws.dynamodb.table-name}")
+    private String dynamoTableName;
     @Autowired
     private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
     public List<Validation> getAllItemsFromAsset(Long idAsset){
         try{
-            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table(dynamoTableName, TableSchema.fromBean(Validation.class));
 
             Expression expression = Expression.builder()
                 .expression("idAsset = :idAsset")
@@ -41,7 +43,7 @@ public class DynamoUtilsService {
 
     public Validation putItem(Validation validation){
         try{
-            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+            DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table(dynamoTableName, TableSchema.fromBean(Validation.class));
             table.putItem(validation);
             return validation;
         } catch(DynamoDbException e ){
@@ -68,7 +70,7 @@ public class DynamoUtilsService {
     }
 
     public void deleteAllValidationsFromAsset(Long idAsset){
-        DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+        DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table(dynamoTableName, TableSchema.fromBean(Validation.class));
         List<Validation> allValidations = getAllItemsFromAsset(idAsset);
 
         for(Validation result : allValidations){
