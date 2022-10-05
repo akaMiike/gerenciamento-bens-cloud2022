@@ -1,19 +1,22 @@
 package com.example.gerenciamentobens.controller;
 
+import com.example.gerenciamentobens.entity.assets.Asset;
 import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
 import com.example.gerenciamentobens.entity.user.UserDTO;
+import com.example.gerenciamentobens.service.DynamoUtilsService;
+import com.example.gerenciamentobens.service.S3UtilsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -22,10 +25,15 @@ public class UserController {
 
     private final PasswordEncoder encoder;
     private final UserRepository userRepository;
+    private final S3UtilsService s3UtilsService;
+    private final DynamoUtilsService dynamoUtilsService;
 
-    public UserController(PasswordEncoder encoder, UserRepository userRepository) {
+    @Autowired
+    public UserController(PasswordEncoder encoder, UserRepository userRepository, S3UtilsService s3UtilsService, DynamoUtilsService dynamoUtilsService) {
         this.encoder = encoder;
         this.userRepository = userRepository;
+        this.s3UtilsService = s3UtilsService;
+        this.dynamoUtilsService = dynamoUtilsService;
     }
 
     @PostMapping("/register")
@@ -67,6 +75,13 @@ public class UserController {
 
         else{
             userData = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Usuário não encontrado"));
+        }
+
+        List<Asset> allAssets = userData.getAssets();
+
+        for(Asset asset : allAssets){
+            s3UtilsService.deleteObjectIfExists(asset.getFileReference());
+            dynamoUtilsService.deleteAllValidationsFromAsset(asset.getId());
         }
 
         userRepository.deleteById(userData.getId());

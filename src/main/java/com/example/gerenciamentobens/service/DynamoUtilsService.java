@@ -19,19 +19,21 @@ public class DynamoUtilsService {
     @Autowired
     private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
-    public Validation getItem(String id){
+    public List<Validation> getAllItemsFromAsset(Long idAsset){
         try{
             DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
-            Key key = Key.builder()
-                    .partitionValue(id)
+
+            Expression expression = Expression.builder()
+                .expression("idAsset = :idAsset")
+                .putExpressionValue(":idAsset", AttributeValue.fromN(idAsset.toString()))
+                .build();
+
+            ScanEnhancedRequest scan = ScanEnhancedRequest.builder()
+                    .filterExpression(expression)
                     .build();
-            Validation validation = table.getItem(key);
 
-            if(validation == null){
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Log de validação não encontrado.");
-            }
+            return table.scan(scan).items().stream().toList();
 
-            return validation;
         } catch(DynamoDbException e ){
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
         }
@@ -67,19 +69,9 @@ public class DynamoUtilsService {
 
     public void deleteAllValidationsFromAsset(Long idAsset){
         DynamoDbTable<Validation> table = dynamoDbEnhancedClient.table("Validation", TableSchema.fromBean(Validation.class));
+        List<Validation> allValidations = getAllItemsFromAsset(idAsset);
 
-        Expression expression = Expression.builder()
-                .expression("idAsset = :idAsset")
-                .putExpressionValue(":idAsset", AttributeValue.fromN(idAsset.toString()))
-                .build();
-
-        ScanEnhancedRequest scan = ScanEnhancedRequest.builder()
-                .filterExpression(expression)
-                .build();
-
-        List<Validation> results = table.scan(scan).items().stream().toList();
-
-        for(Validation result : results){
+        for(Validation result : allValidations){
             table.deleteItem(Key.builder().partitionValue(result.getId()).build());
         }
 

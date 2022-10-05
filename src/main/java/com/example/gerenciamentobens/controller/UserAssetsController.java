@@ -6,6 +6,7 @@ import com.example.gerenciamentobens.entity.assets.AssetDTO;
 import com.example.gerenciamentobens.entity.assets.AssetsRepository;
 import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
+import com.example.gerenciamentobens.entity.validations.Validation;
 import com.example.gerenciamentobens.service.DynamoUtilsService;
 import com.example.gerenciamentobens.service.S3UtilsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 
 @RestController
@@ -27,7 +30,6 @@ public class UserAssetsController {
     private final AssetsRepository assetsRepository;
     private final UserRepository userRepository;
     private final S3UtilsService s3UtilsService;
-    private final AmazonS3 s3Client;
     private final DynamoUtilsService dynamoUtilsService;
 
     @Autowired
@@ -35,7 +37,6 @@ public class UserAssetsController {
         this.assetsRepository = assetsRepository;
         this.userRepository = userRepository;
         this.s3UtilsService = s3UtilsService;
-        this.s3Client = s3Client;
         this.dynamoUtilsService = dynamoUtilsService;
     }
 
@@ -61,7 +62,7 @@ public class UserAssetsController {
         var createdAsset = assetsRepository.save(asset);
 
 
-        s3UtilsService.createOrUpdateObject(s3Client, assetDTO.getFile(), createdAsset.getFileReference());
+        s3UtilsService.createOrUpdateObject(assetDTO.getFile(), createdAsset.getFileReference());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
     }
@@ -80,8 +81,8 @@ public class UserAssetsController {
         var asset = assetDTO.toModel(user, newFilePath, id);
         var updatedAsset = assetsRepository.save(asset);
 
-        s3UtilsService.deleteObjectIfExists(s3Client, oldFilePath);
-        s3UtilsService.createOrUpdateObject(s3Client, assetDTO.getFile(), newFilePath);
+        s3UtilsService.deleteObjectIfExists(oldFilePath);
+        s3UtilsService.createOrUpdateObject(assetDTO.getFile(), newFilePath);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedAsset);
     }
@@ -91,7 +92,7 @@ public class UserAssetsController {
         var userAsset = assetsRepository.findByIdAndUserUsername(id, userDetails.getUsername()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
 
-        s3UtilsService.deleteObjectIfExists(s3Client, userAsset.getFileReference());
+        s3UtilsService.deleteObjectIfExists(userAsset.getFileReference());
         dynamoUtilsService.deleteAllValidationsFromAsset(userAsset.getId());
         assetsRepository.deleteById(id);
 
@@ -101,8 +102,21 @@ public class UserAssetsController {
     @GetMapping("/{name}")
     public ResponseEntity<String> getAssetPresignedUrl(@AuthenticationPrincipal UserDetails userDetails, @PathVariable("name") String fileName){
         String filePath = userDetails.getUsername() + "/" + fileName;
-        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(s3Client, filePath);
+        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(filePath);
         return ResponseEntity.ok(presignedUrl);
+    }
+
+    @GetMapping("/validations/{id}")
+    public ResponseEntity<List<Validation>> getAllValidationsFromAsset(@AuthenticationPrincipal UserDetails userDetails,
+                                                                 @PathVariable("id") Long idAsset){
+
+        List<Validation> validations = dynamoUtilsService.getAllItemsFromAsset(idAsset);
+
+        if(assetsRepository.findByIdAndUserUsername(idAsset, userDetails.getUsername()).isEmpty()){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Log de validação não encontrado.");
+        }
+
+        return ResponseEntity.ok(validations);
     }
 
 }

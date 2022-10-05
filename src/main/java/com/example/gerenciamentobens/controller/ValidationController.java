@@ -23,19 +23,6 @@ public class ValidationController {
     @Autowired
     private AssetsRepository assetsRepository;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Validation> getValidation(@AuthenticationPrincipal UserDetails userDetails,
-                                                    @PathVariable("id") String id){
-
-        Validation validation = dynamoUtilsService.getItem(id);
-
-        if(assetsRepository.findByIdAndUserUsername(validation.getIdAsset(), userDetails.getUsername()).isEmpty()){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Log de validação não encontrado.");
-        }
-
-        return ResponseEntity.ok(validation);
-    }
-
     @PostMapping("")
     public ResponseEntity<Validation> postValidation(@AuthenticationPrincipal UserDetails userDetails,
                                                      @RequestBody @Valid ValidationDTO assetValidation){

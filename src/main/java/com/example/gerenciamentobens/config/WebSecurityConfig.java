@@ -3,6 +3,7 @@ package com.example.gerenciamentobens.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -65,7 +66,8 @@ public class WebSecurityConfig {
         http.cors().and()
                 .authorizeRequests()
                 .antMatchers("/user/register").permitAll()
-                .antMatchers("/users/assets").hasAnyRole("USER")
+                .antMatchers("/users/assets/**").hasAnyRole("USER")
+                .antMatchers(HttpMethod.DELETE,"/users/validation/**").hasAnyRole("USER")
                 .antMatchers("/user/**").hasAnyRole("USER","ADMIN")
                 .and()
                 .sessionManagement()
