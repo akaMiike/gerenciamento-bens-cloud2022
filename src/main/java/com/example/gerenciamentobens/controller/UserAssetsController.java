@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 
@@ -61,7 +62,6 @@ public class UserAssetsController {
         var asset = assetDTO.toModel(user, userDetails.getUsername() + "/" + assetDTO.getName());
         var createdAsset = assetsRepository.save(asset);
 
-
         s3UtilsService.createOrUpdateObject(assetDTO.getFile(), createdAsset.getFileReference());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdAsset);
@@ -99,12 +99,17 @@ public class UserAssetsController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{name}")
-    public ResponseEntity<String> getAssetPresignedUrl(@AuthenticationPrincipal UserDetails userDetails, @PathVariable("name") String fileName){
-        String filePath = userDetails.getUsername() + "/" + fileName;
-        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(filePath);
-        return ResponseEntity.ok(presignedUrl);
+    @GetMapping("/{id}")
+    public ResponseEntity<Optional<Asset>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(assetsRepository.findById(id));
     }
+
+//    @GetMapping("/{name}")
+//    public ResponseEntity<String> getAssetPresignedUrl(@AuthenticationPrincipal UserDetails userDetails, @PathVariable("name") String fileName){
+//        String filePath = userDetails.getUsername() + "/" + fileName;
+//        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(filePath);
+//        return ResponseEntity.ok(presignedUrl);
+//    }
 
     @GetMapping("/validations/{id}")
     public ResponseEntity<List<Validation>> getAllValidationsFromAsset(@AuthenticationPrincipal UserDetails userDetails,

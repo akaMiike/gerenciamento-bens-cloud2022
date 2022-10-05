@@ -66,6 +66,7 @@ public class WebSecurityConfig {
         http.cors().and()
                 .authorizeRequests()
                 .antMatchers("/user/register").permitAll()
+                .antMatchers("/users/assets/{id}").permitAll()
                 .antMatchers("/users/assets/**").hasAnyRole("USER")
                 .antMatchers(HttpMethod.DELETE,"/users/validation/**").hasAnyRole("USER")
                 .antMatchers("/user/**").hasAnyRole("USER","ADMIN")

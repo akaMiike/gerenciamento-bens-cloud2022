@@ -24,10 +24,9 @@ public class ValidationController {
     private AssetsRepository assetsRepository;
 
     @PostMapping("")
-    public ResponseEntity<Validation> postValidation(@AuthenticationPrincipal UserDetails userDetails,
-                                                     @RequestBody @Valid ValidationDTO assetValidation){
+    public ResponseEntity<Validation> postValidation(@RequestBody @Valid ValidationDTO assetValidation){
 
-        if(assetsRepository.findByIdAndUserUsername(assetValidation.getIdAsset(), userDetails.getUsername()).isEmpty()){
+        if(assetsRepository.findById(assetValidation.getIdAsset()).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Bem associado à validação não encontrado.");
         }
 
