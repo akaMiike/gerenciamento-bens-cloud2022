@@ -3,6 +3,7 @@ package com.example.gerenciamentobens.controller;
 import com.amazonaws.services.s3.AmazonS3;
 import com.example.gerenciamentobens.entity.assets.Asset;
 import com.example.gerenciamentobens.entity.assets.AssetDTO;
+import com.example.gerenciamentobens.entity.assets.AssetUrlDTO;
 import com.example.gerenciamentobens.entity.assets.AssetsRepository;
 import com.example.gerenciamentobens.entity.user.User;
 import com.example.gerenciamentobens.entity.user.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 
@@ -59,7 +61,7 @@ public class UserAssetsController {
                                                 @ModelAttribute AssetDTO assetDTO) {
         assetDTO.validateFileFormat();
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
-        var asset = assetDTO.toModel(user, userDetails.getUsername() + "/" + assetDTO.getName());
+        var asset = assetDTO.toModel(user, userDetails.getUsername() + "/" + UUID.randomUUID());
         var createdAsset = assetsRepository.save(asset);
 
         s3UtilsService.createOrUpdateObject(assetDTO.getFile(), createdAsset.getFileReference());
@@ -75,7 +77,7 @@ public class UserAssetsController {
         User user = userRepository.findByUsername(userDetails.getUsername()).get();
         Asset userAsset = assetsRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
 
-        String newFilePath = userDetails.getUsername() + "/" + assetDTO.getName();
+        String newFilePath = userDetails.getUsername() + "/" + UUID.randomUUID();
         String oldFilePath = userAsset.getFileReference();
 
         var asset = assetDTO.toModel(user, newFilePath, id);
@@ -100,16 +102,11 @@ public class UserAssetsController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Optional<Asset>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(assetsRepository.findById(id));
+    public ResponseEntity<AssetUrlDTO> getById(@PathVariable Long id) {
+        Asset asset = assetsRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O bem não foi encontrado"));
+        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(asset.getFileReference());
+        return ResponseEntity.ok(new AssetUrlDTO(asset, presignedUrl));
     }
-
-//    @GetMapping("/{name}")
-//    public ResponseEntity<String> getAssetPresignedUrl(@AuthenticationPrincipal UserDetails userDetails, @PathVariable("name") String fileName){
-//        String filePath = userDetails.getUsername() + "/" + fileName;
-//        String presignedUrl = s3UtilsService.generatePreSignedObjectUrl(filePath);
-//        return ResponseEntity.ok(presignedUrl);
-//    }
 
     @GetMapping("/validations/{id}")
     public ResponseEntity<List<Validation>> getAllValidationsFromAsset(@AuthenticationPrincipal UserDetails userDetails,
