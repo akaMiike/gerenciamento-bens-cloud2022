@@ -1,6 +1,5 @@
 package com.example.gerenciamentobens.controller;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.example.gerenciamentobens.entity.assets.Asset;
 import com.example.gerenciamentobens.entity.assets.AssetDTO;
 import com.example.gerenciamentobens.entity.assets.AssetUrlDTO;
@@ -22,7 +21,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
@@ -37,7 +35,7 @@ public class UserAssetsController {
     private final DynamoUtilsService dynamoUtilsService;
 
     @Autowired
-    public UserAssetsController(AssetsRepository assetsRepository, UserRepository userRepository, S3UtilsService s3UtilsService, AmazonS3 s3Client, DynamoUtilsService dynamoUtilsService) {
+    public UserAssetsController(AssetsRepository assetsRepository, UserRepository userRepository, S3UtilsService s3UtilsService, DynamoUtilsService dynamoUtilsService) {
         this.assetsRepository = assetsRepository;
         this.userRepository = userRepository;
         this.s3UtilsService = s3UtilsService;
@@ -118,15 +116,9 @@ public class UserAssetsController {
     }
 
     @GetMapping("/validations/{id}")
-    public ResponseEntity<List<Validation>> getAllValidationsFromAsset(@AuthenticationPrincipal UserDetails userDetails,
-                                                                 @PathVariable("id") Long idAsset){
+    public ResponseEntity<List<Validation>> getAllValidationsFromAsset(@PathVariable("id") Long idAsset){
 
         List<Validation> validations = dynamoUtilsService.getAllItemsFromAsset(idAsset);
-
-        if(assetsRepository.findByIdAndUserUsername(idAsset, userDetails.getUsername()).isEmpty()){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Log de validação não encontrado.");
-        }
-
         return ResponseEntity.ok(validations);
     }
 
