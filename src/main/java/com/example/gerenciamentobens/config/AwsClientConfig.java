@@ -1,5 +1,8 @@
 package com.example.gerenciamentobens.config;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
@@ -16,9 +19,15 @@ public class AwsClientConfig {
 
     @Bean
     public AmazonS3 amazonS3Client(){
+        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(
+                new BasicAWSCredentials("",
+                        ""));
         return AmazonS3ClientBuilder.standard()
-                            .withRegion(Regions.US_EAST_1)
-                            .build();
+                .withCredentials(credentialsProvider)
+                .withPathStyleAccessEnabled(true)
+                .withEndpointConfiguration(
+                        new EndpointConfiguration("http://localhost:10000", "us-east-1"))
+                .build();
     }
 
     @Bean
