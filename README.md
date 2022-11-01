@@ -41,7 +41,7 @@ O projeto inicialmente foi construído para demonstrar uso de tecnologias de nuv
 
 Além disso, o backend é feito em Spring Boot, e o frontend com React, sendo servido pelo Nginx. O banco relacionado escolhido foi o postgres.
 
-A segunda fase do projeto, usa docker e docker compose para orquestrar a aplicação. 
+A segunda fase do projeto, usa docker e docker compose para executar a aplicação. 
 
 Para tal, substituímos o S3 pelo Minio, e o DynamoDB usamos uma imagem do [DynamoDBLocal](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) mantida pela própria Amazon.
 
