@@ -29,6 +29,25 @@ A API do projeto é acessível a partir do endereço `http://localhost:8080` e o
 
 ---
 
+# Sobre o projeto
+
+O projeto inicialmente foi construído para demonstrar uso de tecnologias de nuvem, como:
+
+- AWS
+- EC2
+- AWS RDS
+- DynamoDB
+- S3
+
+Além disso, o backend é feito em Spring Boot, e o frontend com React, sendo servido pelo Nginx. O banco relacionado escolhido foi o postgres.
+
+A segunda fase do projeto, usa docker e docker compose para orquestrar a aplicação. 
+
+Para tal, substituímos o S3 pelo Minio, e o DynamoDB usamos uma imagem do [DynamoDBLocal](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) mantida pela própria Amazon.
+
+O Minio possui API compatível com o S3, de modo que foram necessárias mudanças mínimas em configurações para fazer o código funcionar com o Minio.
+
+
 # Comandos úteis
 
 ## Criando apenas imagens 
