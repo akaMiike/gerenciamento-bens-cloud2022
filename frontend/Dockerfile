@@ -2,25 +2,23 @@
 
 FROM node:14.19-alpine AS webapp_build
 
-USER react
+#USER react
 
 WORKDIR /home/react/webapp
 
-COPY package.json yarn-lock.json ./
+COPY package.json yarn.lock ./
 
 RUN yarn
 
-COPY src public .env ./
+COPY . .
 
-RUN yarn:build
+RUN yarn run build
 
 
 # Second stage: copy static files to nginx & configure nginx
 FROM nginx
 
-USER nginx
-
 COPY webapp.conf /etc/nginx/conf.d/default.conf
 
-COPY --from=webapp_build /home/react/webapp /var/www/frontend
+COPY --from=webapp_build /home/react/webapp/build /var/www/frontend
 
