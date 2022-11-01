@@ -24,11 +24,14 @@ services:
       - AWS_S3_IS-MINIO=true
       - AWS_S3_ACCESS-KEY=gerenciamento-minio
       - AWS_S3_SECRET-KEY=gerenciamento-minio
+      - AWS_DYNAMODB_TABLE-NAME=Validation
+      - AWS_DYNAMODB_IS-LOCAL=true
+      - AWS_DYNAMODB_URL=http://dynamo:8000/
     depends_on:
       - postgres_db
       - minio
       - minio_bucket
-#      - dynamo_db
+      - dynamo
     ports:
       - '8080:8080'
 
@@ -64,8 +67,8 @@ services:
   minio_bucket:
     image: 'minio-create-bucket:latest'
     build:
-      context: .
-      dockerfile: create-bucket.dockerfile
+      context: create-bucket
+      dockerfile: ./create-bucket.dockerfile
     depends_on:
       - minio
     environment:
@@ -74,14 +77,15 @@ services:
       MINIO_SECRET_KEY: gerenciamento-minio
       MINIO_BUCKET_NAME: "gerenciamento-bens"
 
-#  dynamo_db:
-#    image: amazon/dynamodb-local
-#    container_name: dynamo_db
-#    ports:
-#      - "8000:8000"
-#    volumes:
-#      - ./dynamo-db-local:/home/dynamodb/data
-#    command: "-jar DynamoDBLocal.jar -sharedDb - dbPath /home/dynamodb/data"
+  dynamo:
+    image: amazon/dynamodb-local
+    container_name: dynamo
+    user: root
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./dynamo-local:/home/dynamodb/data
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodb/data"
 
 
 volumes:

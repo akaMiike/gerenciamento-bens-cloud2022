@@ -11,9 +11,14 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.*;
+
+import java.net.URI;
 
 @Configuration
 public class AwsClientConfig {
@@ -29,6 +34,15 @@ public class AwsClientConfig {
 
     @Value("${aws.s3.secret-key}")
     private String secretKey;
+
+    @Value("${aws.dynamodb.table-name}")
+    private String dynamoTableName;
+
+    @Value("${aws.dynamodb.is-local}")
+    private Boolean isDynamoLocal;
+
+    @Value("${aws.dynamodb.url}")
+    private String dynamoDbUrl;
 
     @Bean
     public AmazonS3 amazonS3Client() {
@@ -51,6 +65,45 @@ public class AwsClientConfig {
 
     @Bean
     public DynamoDbEnhancedClient amazonDynamoEnhancedClient(){
+        if (isDynamoLocal) {
+            DynamoDbClient dynamoClient = DynamoDbClient.builder()
+                    .credentialsProvider(StaticCredentialsProvider.create(
+                            AwsBasicCredentials.create("some", "credentials")))
+                    .endpointOverride(URI.create("http://dynamo:8000/"))
+                    .region(Region.US_EAST_1)
+                    .build();
+
+            var enhancedClient = DynamoDbEnhancedClient.builder()
+                    .dynamoDbClient(dynamoClient)
+                    .build();
+
+            try {
+                dynamoClient
+                        .createTable(CreateTableRequest
+                                .builder()
+                                .tableName(dynamoTableName)
+                                .attributeDefinitions(AttributeDefinition.builder()
+                                        .attributeName("id")
+                                        .attributeType(ScalarAttributeType.S)
+                                        .build())
+                                .keySchema(KeySchemaElement
+                                        .builder()
+                                        .attributeName("id")
+                                        .keyType(KeyType.HASH)
+                                        .build())
+                                .provisionedThroughput(ProvisionedThroughput.builder()
+                                        .readCapacityUnits(10L)
+                                        .writeCapacityUnits(10L)
+                                        .build())
+                                .build());
+            } catch (Exception e) {
+                System.out.println("Error creating dynamo table");
+                e.printStackTrace();
+            }
+
+            return enhancedClient;
+        }
+
         DynamoDbClient dynamoClient = DynamoDbClient.builder()
                 .region(Region.US_EAST_1)
                 .build();
